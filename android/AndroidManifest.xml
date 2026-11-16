@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.usbreverse.lab" android:versionCode="2" android:versionName="0.2.0">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application android:label="USB Reverse Tether" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:debuggable="false">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".ProvisionActivity" android:exported="true" android:permission="android.permission.DUMP" android:taskAffinity="" android:excludeFromRecents="true" android:noHistory="true" />
+        <activity android:name=".BenchActivity" android:exported="true" android:permission="android.permission.DUMP" />
+        <activity android:name=".SpeedActivity" android:exported="true" android:permission="android.permission.DUMP" />
+        <activity android:name=".ProbeActivity" android:exported="true" android:permission="android.permission.DUMP" />
+        <provider android:name=".DiagnosticsProvider" android:authorities="dev.usbreverse.lab.diagnostics" android:exported="true" android:readPermission="android.permission.DUMP" android:writePermission="android.permission.DUMP" />
+        <service android:name=".UsbVpnService" android:permission="android.permission.BIND_VPN_SERVICE" android:exported="true" android:foregroundServiceType="specialUse">
+            <intent-filter><action android:name="android.net.VpnService" /></intent-filter>
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated USB reverse tethering VPN" />
+        </service>
+    </application>
+</manifest>

@@ -1,0 +1,33 @@
+name: Bug report
+description: Report a reproducible connection, setup or interface problem
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Read the installation guide first. Do not include phone serials, keys, raw traffic or personal information. Report vulnerabilities privately through the Security tab."
+  - type: input
+    id: version
+    attributes:
+      label: USB Relay version
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Computer and phone
+      description: Windows version, Android version, phone model, cable/port, installer or portable package
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps and expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and safe diagnostics
+      description: Use Copy safe diagnostics. Redact screenshots before attaching them.
+    validations:
+      required: true

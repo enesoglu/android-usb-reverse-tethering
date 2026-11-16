@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation and troubleshooting
+    url: https://github.com/enesoglu/android-usb-reverse-tethering/blob/main/docs/INSTALLATION.md
+    about: Computer and phone setup, permissions, reconnect and common problems
+  - name: Private security report
+    url: https://github.com/enesoglu/android-usb-reverse-tethering/security/advisories/new
+    about: Do not disclose vulnerabilities in public issues

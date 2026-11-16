@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+results/*.json
+build/
+.local/
+
+**/bin/
+**/obj/
+
+# Private development notes and signing material are never published.
+docs/progress.md
+docs/desktop-plan.md
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.dpapi
+.env
+.env.*
+vendor/

@@ -1,0 +1,40 @@
+version: '3'
+
+tasks:
+  check:
+    desc: Check secure relay, Android protocol, signed APKs and native desktop lifecycle
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File ./check.ps1
+  build:
+    desc: Build the secure native Windows desktop bundle
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File ./build-desktop.ps1
+  test:
+    desc: Run Python protocol and delivery validation tests
+    cmds:
+      - python -m unittest discover -v
+
+  desktop:build:
+    desc: Build the verified Windows desktop bundle and companion APK
+    cmds:
+      - powershell -NoProfile -ExecutionPolicy Bypass -File ./build-desktop.ps1
+  connect:
+    desc: Open the native Windows USB Relay app
+    cmds:
+      - powershell -NoProfile -Command "Start-Process -FilePath './build/desktop/UsbRelay.exe'"
+  disconnect:
+    desc: Request disconnect from the running desktop app
+    cmds:
+      - ./build/desktop/UsbRelay.exe --disconnect
+  exit:
+    desc: Exit the desktop app and clean up its active USB tunnel
+    cmds:
+      - ./build/desktop/UsbRelay.exe --exit
+  phone:probe:
+    desc: Verify TCP, UDP, DNS and HTTPS through the running phone VPN
+    cmds:
+      - python -m lab.phone_probe --secure {{if .CLI_ARGS}}--serial {{.CLI_ARGS}}{{end}} --output results/phone-vpn-probe.json
+  phone:speed:
+    desc: Measure receiver-verified VPN throughput and loaded UDP RTT
+    cmds:
+      - python -m lab.vpn_bench --secure {{if .CLI_ARGS}}--serial {{.CLI_ARGS}}{{end}} --output results/vpn-throughput.json

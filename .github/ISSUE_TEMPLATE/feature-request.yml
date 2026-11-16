@@ -1,0 +1,14 @@
+name: Feature request
+description: Explain a concrete internet-sharing use case
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Problem or use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives

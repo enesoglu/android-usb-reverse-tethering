@@ -1,0 +1,9 @@
+USB Relay — Android USB Reverse Tethering
+
+Free software under GNU GPL version 3 only. Copyright 2026 USB Relay contributors. No warranty. License and source links are included with the application.
+
+This installer installs USB Relay for your Windows account. It does not install USB/network drivers or change Windows routing. The app includes its .NET runtime. Google platform tools are obtained separately through the setup assistant after terms consent, or supplied by you.
+
+After installation, follow Setup help on Windows. On Android you must enable USB debugging, authorize your computer, and approve the VPN. Those OS security prompts cannot be automated.
+
+Public alpha: sustained VPN throughput is still being improved. See the included installation and verification guides for measured results and limits.

@@ -1,0 +1,38 @@
+{
+  "actions/checkout": {
+    "version": "v7.0.1",
+    "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+  },
+  "actions/setup-go": {
+    "version": "v7.0.0",
+    "sha": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+  },
+  "actions/setup-dotnet": {
+    "version": "v6.1.0",
+    "sha": "0f4a354dd5547a28c70b7853dbd95d5b67886e73"
+  },
+  "actions/setup-java": {
+    "version": "v6.3.0",
+    "sha": "d1374f8ac74474200d16ef8ecee22c7ae7a51880"
+  },
+  "actions/setup-python": {
+    "version": "v7.1.0",
+    "sha": "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
+  },
+  "actions/upload-artifact": {
+    "version": "v7.0.2",
+    "sha": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+  },
+  "actions/attest-build-provenance": {
+    "version": "v4.2.2",
+    "sha": "4d101475d8b20a2381f78447822ac1eab6504dd8"
+  },
+  "actions/upload-pages-artifact": {
+    "version": "v4",
+    "sha": "7b1f4a764d45c48632c6b24a0339c27f5614fb0b"
+  },
+  "actions/deploy-pages": {
+    "version": "v4",
+    "sha": "d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
+  }
+}

@@ -1,0 +1,65 @@
+name: CI
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows-checks:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.0.404'
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - name: Prepare Android SDK
+        shell: pwsh
+        run: |
+          $sdkmanager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+          1..50 | ForEach-Object {'y'} | & $sdkmanager --licenses | Out-Null
+          if ($LASTEXITCODE -ne 0) {throw 'SDK license preparation failed'}
+          & $sdkmanager 'platforms;android-36' 'build-tools;37.0.0'
+          if ($LASTEXITCODE -ne 0) {throw 'SDK package setup failed'}
+      - name: Check source, APK and native desktop
+        shell: pwsh
+        run: |
+          python scripts/check-publication.py
+          if ($LASTEXITCODE -ne 0) {throw 'Publication checks failed'}
+          ./check.ps1 -Sdk $env:ANDROID_HOME -Jdk $env:JAVA_HOME
+      - name: Go concurrency checks
+        shell: pwsh
+        run: |
+          $compiler = Get-Command gcc -ErrorAction SilentlyContinue
+          if (-not $compiler) {throw 'A C compiler is required for race checks'}
+          $env:CGO_ENABLED='1'
+          $env:CC=$compiler.Source
+          go test -race ./... -count=1 -timeout=90s
+          if ($LASTEXITCODE -ne 0) {throw 'Race checks failed'}
+      - name: Go vulnerability scan
+        shell: pwsh
+        run: |
+          go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+          if ($LASTEXITCODE -ne 0) {throw 'Vulnerability scan failed'}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: desktop-smoke-test
+          path: .local/desktop-preview.*
+          include-hidden-files: true
+          retention-days: 7
