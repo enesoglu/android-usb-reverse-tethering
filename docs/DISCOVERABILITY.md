@@ -62,3 +62,7 @@ HTML tag verification is available for URL-prefix properties, requires a publicl
 ## Measuring progress
 
 Track working download links, successful installations, independent device reports, useful bug reports, referral traffic where available, and Search Console impressions/clicks after verification. Search visibility, external listings, and AI citations are separate outcomes. Report each as pending, submitted, accepted, or verified rather than treating content publication as proof of indexing.
+
+## Implementation status
+
+See the [publication report](PUBLICATION-REPORT.md) for completed changes, actual test results, public PRs and owner actions. Search-engine inclusion and external-list acceptance remain separate from successful publication.

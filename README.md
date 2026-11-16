@@ -125,6 +125,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./build-desktop.ps1
 
 Contributions and reproducible issue reports are welcome. Please provide synthetic diagnostics, not phone serial numbers, private keys, packet captures, or browsing data. [Report a bug](https://github.com/enesoglu/android-usb-reverse-tethering/issues/new/choose).
 
+[Publication and discoverability report](docs/PUBLICATION-REPORT.md): completed distribution work, external submissions, verification and remaining owner steps.
+
 ## Roadmap
 
 1. Improve sustained VPN throughput and profile the Go/TLS/Android TUN path.
