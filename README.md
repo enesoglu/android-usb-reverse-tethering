@@ -4,6 +4,7 @@
 
 [Project website](https://enesoglu.github.io/android-usb-reverse-tethering/) · [Download the Windows app](https://github.com/enesoglu/android-usb-reverse-tethering/releases) · [Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/INSTALLATION.md#troubleshooting) · [Security](SECURITY.md) · [GPLv3 license](LICENSE)
 
+[![CI](https://github.com/enesoglu/android-usb-reverse-tethering/actions/workflows/ci.yml/badge.svg)](https://github.com/enesoglu/android-usb-reverse-tethering/actions/workflows/ci.yml)
 ![License: GPLv3](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![Windows x64](https://img.shields.io/badge/desktop-Windows%20x64-0078d4)
 ![Android 10+](https://img.shields.io/badge/phone-Android%2010%2B-3ddc84)
@@ -90,6 +91,8 @@ This feature comparison uses upstream documentation, checked on 2026-11-16. It i
 | Current caution | Public alpha; limited device testing | Upstream says not actively maintained | Commercial terms apply | Check upstream platform requirements |
 
 Sources: [Gnirehtet README](https://github.com/Genymobile/gnirehtet), [Tetrd developer listing](https://play.google.com/store/apps/details?id=com.robskie.tether&hl=en), [SimpleRT README](https://github.com/robinpaulson/SimpleRT). Android security approvals mean none should be advertised as permission-free one-click setup.
+
+If you are looking for a **gnirehtet GUI** or a **Tetrd alternative**, this is an independent early-stage project with its own implementation. The alpha performance limits below remain important.
 
 ## Requirements and current limits
 

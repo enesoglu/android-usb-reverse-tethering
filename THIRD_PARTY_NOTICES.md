@@ -1,13 +1,16 @@
 # Third-party notices
 
-The Windows relay embeds gVisor netstack, pinned in `go.mod` / `go.sum`. gVisor is licensed under Apache License 2.0. A copy is included at `third_party/gvisor-LICENSE`.
+USB Relay's own code is GPL-3.0-only. The following dependencies retain their own licenses and copyright notices; the project license does not erase them.
 
-- [gVisor](https://github.com/google/gvisor): Apache-2.0.
-- [google/btree](https://github.com/google/btree): Apache-2.0, indirect dependency.
-- [golang.org/x/sys](https://cs.opensource.google/go/x/sys): BSD-3-Clause, indirect dependency.
-- [golang.org/x/time](https://cs.opensource.google/go/x/time): BSD-3-Clause, indirect dependency.
-- [golang.org/x/exp](https://cs.opensource.google/go/x/exp): BSD-3-Clause, indirect dependency.
+- **gVisor netstack**: Apache-2.0, pinned in go.mod/go.sum. License and any upstream NOTICE are in third_party/. Source: https://github.com/google/gvisor.
+- **google/btree**: Apache-2.0. Source: https://github.com/google/btree.
+- **golang.org/x/sys, x/time, x/exp**: BSD-3-Clause. Their license texts are in third_party/.
+- **Go runtime and standard library**: BSD-style Go license, included as third_party/go-LICENSE.txt. Source: https://go.dev/LICENSE.
+- **Microsoft .NET runtime and Windows Desktop runtime**: unmodified runtime components distributed with the self-contained Windows package. Their runtime-pack LICENSE and THIRD-PARTY-NOTICES files are copied into that package's third_party/ folder. Sources: https://github.com/dotnet/runtime, https://github.com/dotnet/wpf and https://github.com/dotnet/winforms. Framework-dependent development builds use the separately installed runtime.
+- **Inno Setup**: used to build the Windows installer. The setup/uninstall components retain upstream attribution; the pinned license is included in third_party/inno-setup-LICENSE.txt. Source: https://github.com/jrsoftware/issrc/tree/is-7_1_1. The compiler itself is not bundled with the app.
 
-Gnirehtet is invoked externally only by the overflow test and is not bundled. Android SDK platform/build tools, Java, Python and ADB are external tools; Google platform tools are not redistributed. The Go runtime is compiled into the relay and its BSD license is included in binary packages.
+Google Android SDK/platform-tools, Android Studio and the JDK are external tools, not mirrored as project release assets. The optional setup download goes directly to Google after user consent and preserves the downloaded package's notices. An existing trusted adb.exe can be used instead. AOSP adb has its own open-source licensing, while the complete Google SDK download can carry additional terms; see docs/distribution-research.md.
 
-Public Windows packages include the .NET 10 runtime and Windows Desktop runtime (WPF/Windows Forms). Their runtime-pack licenses and third-party notices are copied into the binary package third_party directory. See modules.txt and BUILD-INFO.json for pinned dependency and runtime versions. The Go dependency sources are included in the corresponding-source release archive. No Google SDK binaries are bundled.
+Gnirehtet and Tetrd are not bundled. Historical diagnostics may invoke a separately installed gnirehtet executable; its engine is not part of the application.
+
+The corresponding-source release ZIP includes the tagged project and pinned Go dependency sources. Build instructions explain how to create modified clients with your own signing key. No maintainer private key is required or provided.
