@@ -1,5 +1,5 @@
 #ifndef Version
-  #define Version "0.3.0-alpha.1"
+  #define Version "0.4.0-alpha.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\build\release\windows-x64"
@@ -32,7 +32,7 @@ OutputDir={#OutputDir}
 OutputBaseFilename=USB-Relay-{#Version}-windows-x64-setup
 SetupIconFile=..\desktop\UsbRelay\Assets\usb-relay.ico
 UninstallDisplayIcon={app}\UsbRelay.exe
-VersionInfoVersion=0.3.0.1
+VersionInfoVersion=0.4.0.1
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]

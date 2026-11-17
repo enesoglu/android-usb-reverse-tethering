@@ -2,8 +2,8 @@ docs/INSTALLATION.md
 docs/START-HERE.html
 docs/security.md
 docs/verification.md
-docs/measurement-report.md
 docs/architecture.md
 docs/distribution-research.md
 docs/RELEASE-NOTES.md
 docs/images/desktop-preview.png
+docs/reverse-tethering-engineering.md

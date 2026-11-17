@@ -2,7 +2,7 @@
 
 **Share your Windows PC's internet connection with an Android phone over USB. No root or Wi-Fi hotspot required.**
 
-[Project website](https://enesoglu.github.io/android-usb-reverse-tethering/) · [Download the Windows app](https://github.com/enesoglu/android-usb-reverse-tethering/releases) · [Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/INSTALLATION.md#troubleshooting) · [Security](SECURITY.md) · [GPLv3 license](LICENSE)
+[Project website](https://projects.enesoglu.com/android-usb-reverse-tethering/) · [Download the Windows app](https://github.com/enesoglu/android-usb-reverse-tethering/releases) · [Step-by-step installation](docs/INSTALLATION.md) · [Troubleshooting](docs/INSTALLATION.md#troubleshooting) · [Security](SECURITY.md) · [GPLv3 license](LICENSE)
 
 [![CI](https://github.com/enesoglu/android-usb-reverse-tethering/actions/workflows/ci.yml/badge.svg)](https://github.com/enesoglu/android-usb-reverse-tethering/actions/workflows/ci.yml)
 ![License: GPLv3](https://img.shields.io/badge/license-GPLv3-blue.svg)
@@ -11,7 +11,7 @@
 
 USB Relay is a free, open-source **reverse tethering** app: use your computer's Ethernet or Wi-Fi internet on your Android phone through a data-capable USB cable. It is useful for **internet over USB**, **PC-to-Android internet sharing**, and **Ethernet-to-Android connectivity** when the phone's Wi-Fi is unavailable or unreliable.
 
-> **Public alpha:** connection and security checks have passed on a Galaxy S23 Ultra / Android 17. Throughput work is unfinished. A receiver-hashed 512 MiB VPN test reached about **128 Mbps**, while raw ADB on the same setup reached **268–273 Mbps**. Gigabit performance is not claimed. [Measurement details](docs/verification.md).
+> **Public alpha:** the latest release improves USB transport efficiency and startup behavior. Throughput depends on the negotiated USB link, device scheduling and network conditions; a minimum speed or broad device compatibility is not guaranteed. [Current limitations](docs/verification.md).
 
 ![Windows to Android USB reverse tethering GUI with paired phones and connection controls](docs/images/desktop-preview.png)
 *Interface preview with sample device and traffic data; the displayed rates are not benchmark claims.*
@@ -34,6 +34,7 @@ USB Relay is a free, open-source **reverse tethering** app: use your computer's 
 - Automatic reconnect for previously trusted phones, including USB detach/reattach.
 - Explicit first pairing and changed-key protection; a serial number alone does not establish trust.
 - Rootless Android VPN with TLS 1.3 mutual authentication.
+- Efficient packet batching and bounded flow control for faster USB links.
 - Automatic companion installation and update from the verified desktop bundle.
 - Optional, consent-gated Google platform-tools download with a pinned SHA-256.
 - Per-user Windows installation and a self-contained portable alternative.
@@ -69,7 +70,7 @@ It shares **PC internet to Android**. For the other direction, use Android's bui
 
 ### Will my gigabit connection reach gigabit speeds on Android?
 
-No such guarantee is made. The verified encrypted VPN result is about 128 Mbps on the documented setup. Cable negotiation, ADB, encryption, packet processing, and device load can limit throughput. Faster transport is ongoing work.
+No fixed speed is guaranteed. The current release reduces packet-processing overhead, but the cable, negotiated USB speed, phone scheduling and remote server still affect throughput. See [how the data path works](docs/reverse-tethering-engineering.md) and the [current limitations](docs/verification.md).
 
 ### Will a paired phone reconnect automatically?
 
@@ -126,6 +127,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File ./build-desktop.ps1
 Contributions and reproducible issue reports are welcome. Please provide synthetic diagnostics, not phone serial numbers, private keys, packet captures, or browsing data. [Report a bug](https://github.com/enesoglu/android-usb-reverse-tethering/issues/new/choose).
 
 [Publication and discoverability report](docs/PUBLICATION-REPORT.md): completed distribution work, external submissions, verification and remaining owner steps.
+
+## Learn how reverse tethering works
+
+The [reverse-tethering engineering guide](docs/reverse-tethering-engineering.md) explains USB link negotiation, ADB and accessory transports, Android TUN processing, authenticated packet sizing, encryption and flow control. It also separates documented Tetrd behavior from implementation details that are not public. Start with the [architecture](docs/architecture.md) if you want to work on USB Relay itself.
 
 ## Roadmap
 

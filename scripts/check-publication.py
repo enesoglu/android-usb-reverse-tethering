@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import re
 import subprocess
+import sys
 from html.parser import HTMLParser
 
 root=Path(__file__).resolve().parent.parent
@@ -23,12 +24,16 @@ for name in files:
         if re.search(r'\b[A-Z]:[/\\]Users[/\\](?!Public\b|Default\b)[^/\\\s]+',text,re.I):failures.append('Personal Windows home path: '+name)
         if re.search(r'[A-Z0-9._%+-]+@(?:gmail|hotmail|outlook|icloud)\.com',text,re.I):failures.append('Personal email: '+name)
         if any(character in text for character in '\u011f\u011e\u0131\u0130\u015f\u015e'):failures.append('Non-English Turkish text: '+name)
+    if name.startswith(('docs/','site/')) or name=='README.md':
+        if re.search(r'(?i)\b(?:test[ _-]?id|device[ _-]?serial|phone[ _-]?serial)\s*[:=]?\s*[A-Za-z0-9]{8,}',text):failures.append('Session/device identifier in public documentation: '+name)
+        if re.search(r'\bSM-S[0-9]{3}[A-Z]?\b',text):failures.append('Device-specific model in public documentation: '+name)
+        if re.search(r'(?:\.\./)?(?:results/|\.local/)',text):failures.append('Private evidence link in public documentation: '+name)
     if path.suffix=='.md':
         for link in re.findall(r'!?\[[^\]]*\]\(([^)]+)\)',text):
             if re.match(r'^[a-z]+:',link) or link.startswith('#'):continue
             target=(path.parent/link.split('#',1)[0]).resolve()
             if not target.is_relative_to(root) or not target.exists():failures.append('Broken local link in '+name+': '+link)
-required=['LICENSE','README.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','docs/INSTALLATION.md','docs/START-HERE.html','packaging/platform-tools.json','packaging/android-signing-certificate.pem']
+required=['docs/reverse-tethering-engineering.md','site/engineering.html','LICENSE','README.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','docs/INSTALLATION.md','docs/START-HERE.html','packaging/platform-tools.json','packaging/android-signing-certificate.pem']
 for name in required:
     if not (root/name).is_file():failures.append('Missing public file: '+name)
 if 'GNU GENERAL PUBLIC LICENSE' not in (root/'LICENSE').read_text(encoding='utf-8'):failures.append('Missing GPL license text')
@@ -49,6 +54,8 @@ guide=GuideParser();guide.feed((root/'docs/START-HERE.html').read_text(encoding=
 for link in guide.links:
     if link.startswith('#') and link[1:] not in guide.ids:failures.append('Broken offline guide anchor: '+link)
 if not any(link.startswith('https://github.com/enesoglu/android-usb-reverse-tethering/releases') for link in guide.links):failures.append('Offline download link was not rendered correctly')
+article_check=subprocess.run([sys.executable,str(root/'scripts/render-engineering.py'),'--check'],cwd=root)
+if article_check.returncode:failures.append('Engineering article render mismatch')
 if failures:
     for failure in failures:print('FAIL: '+failure)
     raise SystemExit(1)

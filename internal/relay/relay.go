@@ -27,7 +27,9 @@ import (
 	"gvisor.dev/gvisor/pkg/waiter"
 )
 
-const MTU = 1500
+// MTU is the largest negotiated packet; v2 clients retain their 1500-byte limit.
+const MTU = 9000
+const legacyMTU = 1500
 const Magic = "URV1"
 
 // ErrPeerDisconnected marks an explicit user stop, which must suppress auto-reconnect.
@@ -35,6 +37,7 @@ var ErrPeerDisconnected = errors.New("phone requested disconnect")
 
 // Metrics contains aggregate counts only; no addresses or traffic are logged.
 type Metrics struct {
+	TCPQueueWaits    atomic.Uint64
 	TransportFlushes atomic.Uint64
 	UDPQueueDrops    atomic.Uint64
 	QueuedPackets    atomic.Int64
@@ -50,6 +53,7 @@ type Metrics struct {
 }
 
 type endpoint struct {
+	ctx context.Context
 	*channel.Endpoint
 	metrics *Metrics
 	queue   *fairQueue
@@ -66,7 +70,9 @@ type InvalidPacketError struct {
 func (e *InvalidPacketError) Error() string { return "invalid ipv4 packet" }
 
 // ReadPacket rejects malformed framing and inconsistent IPv4 lengths.
-func ReadPacket(reader io.Reader) ([]byte, error) {
+func ReadPacket(reader io.Reader) ([]byte, error) { return readPacket(reader, MTU) }
+
+func readPacket(reader io.Reader, limit int) ([]byte, error) {
 	var prefix [2]byte
 	if _, err := io.ReadFull(reader, prefix[:]); err != nil {
 		return nil, err
@@ -82,7 +88,7 @@ func ReadPacket(reader io.Reader) ([]byte, error) {
 		}
 		return nil, errors.New("unsupported control frame")
 	}
-	if size < 20 || size > MTU {
+	if size < 20 || size > limit {
 		return nil, errors.New("invalid packet size")
 	}
 	packet := make([]byte, size)
@@ -152,7 +158,7 @@ func Serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 	return serve(parent, conn, token, metrics, Policy{LegacyLab: true}, nil, Magic)
 }
 
-// ServeWithPolicy handles the TLS-protected v2 protocol; plaintext compatibility is never negotiated.
+// ServeWithPolicy accepts authenticated v2/v3 framing; MTU negotiation stays inside TLS.
 func ServeWithPolicy(parent context.Context, conn net.Conn, nonce []byte, metrics *Metrics, policy Policy, authenticated func() error) error {
 	return serve(parent, conn, nonce, metrics, policy, authenticated, "URV2")
 }
@@ -170,8 +176,24 @@ func serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 	if _, err := io.ReadFull(conn, hello[:]); err != nil {
 		return fmt.Errorf("read handshake: %w", err)
 	}
-	if string(hello[:4]) != magic || subtle.ConstantTimeCompare(hello[4:], token) != 1 {
+	negotiated := magic == "URV2" && string(hello[:4]) == "URV3"
+	if (!negotiated && string(hello[:4]) != magic) || subtle.ConstantTimeCompare(hello[4:], token) != 1 {
 		return errors.New("unauthorized tunnel")
+	}
+	mtu := legacyMTU
+	if magic == Magic {
+		mtu = MTU
+	} // isolated legacy-lab protocol
+	if negotiated {
+		var requested [2]byte
+		if _, err := io.ReadFull(conn, requested[:]); err != nil {
+			return err
+		}
+		mtu = int(binary.BigEndian.Uint16(requested[:]))
+		if mtu < legacyMTU || mtu > MTU {
+			return errors.New("invalid negotiated MTU")
+		}
+		magic = "URV3"
 	}
 	if authenticated != nil {
 		if err := authenticated(); err != nil {
@@ -181,8 +203,15 @@ func serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 	if _, err := io.WriteString(conn, magic); err != nil {
 		return err
 	}
+	if negotiated {
+		var agreed [2]byte
+		binary.BigEndian.PutUint16(agreed[:], uint16(mtu))
+		if _, err := conn.Write(agreed[:]); err != nil {
+			return err
+		}
+	}
 	conn.SetDeadline(time.Time{})
-	link := &endpoint{Endpoint: channel.New(1, MTU, ""), metrics: metrics, queue: newFairQueue(metrics)}
+	link := &endpoint{ctx: ctx, Endpoint: channel.New(1, uint32(mtu), ""), metrics: metrics, queue: newFairQueue(metrics)}
 	defer link.queue.close()
 	ipstack := stack.New(stack.Options{
 		NetworkProtocols:   []stack.NetworkProtocolFactory{ipv4.NewProtocol},
@@ -242,7 +271,7 @@ func serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 		// This TCP leg spans USB, not the upstream Internet RTT. Keep its
 		// send window bounded so autotuning does not create a large backlog
 		// and expensive outstanding-segment scans during sustained downloads.
-		ep.SocketOptions().SetSendBufferSize(256*1024, true)
+		ep.SocketOptions().SetSendBufferSize(512*1024, true)
 		request.Complete(false)
 		downstream := gonet.NewTCPConn(&queue, ep)
 		defer downstream.Close()
@@ -305,7 +334,7 @@ func serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 				}
 				metrics.OutPackets.Add(1)
 				metrics.OutBytes.Add(uint64(size))
-				if count >= 20 || buffered.Available() < MTU+2 {
+				if count >= 20 || buffered.Available() < mtu+2 {
 					break
 				}
 				packet = link.queue.tryRead()
@@ -323,8 +352,9 @@ func serve(parent context.Context, conn net.Conn, token []byte, metrics *Metrics
 		}
 	}()
 	defer func() { cancel(); <-writerDone }()
+	reader := bufio.NewReaderSize(conn, 65536)
 	for {
-		data, err := ReadPacket(conn)
+		data, err := readPacket(reader, mtu)
 		if err != nil {
 			return err
 		}

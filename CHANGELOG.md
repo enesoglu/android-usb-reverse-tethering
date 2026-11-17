@@ -1,9 +1,16 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-alpha.1
+
+- Negotiate up to 9000-byte USB VPN packets inside authenticated TLS while retaining 1500-byte v2 compatibility.
+- Batch already-ready Android uplink packets and prioritize VPN worker scheduling.
+- Apply bounded, cancellable TCP queue backpressure with an 8 MiB byte budget and reserved UDP headroom.
 
 - Add a separate start-minimized preference that opens directly in the system tray.
 - Honor the saved window preference for Windows sign-in startup.
+
+- Publish a reusable reverse-tethering engineering guide and simplify public documentation.
+- Keep detailed device/session evidence local and use generic preview data.
 
 ## 0.3.0-alpha.1
 

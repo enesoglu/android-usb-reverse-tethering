@@ -24,21 +24,40 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 )
 
-func testClient(t *testing.T) (*stack.Stack, *Metrics) {
+func testClientVersion(t *testing.T, negotiate bool) (*stack.Stack, *Metrics) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	host, phone := net.Pipe()
 	token := bytes.Repeat([]byte{42}, 32)
 	metrics := &Metrics{}
 	ended := make(chan error, 1)
-	go func() { ended <- Serve(ctx, host, token, metrics) }()
+	go func() {
+		if negotiate {
+			ended <- ServeWithPolicy(ctx, host, token, metrics, Policy{LegacyLab: true}, func() error { return nil })
+		} else {
+			ended <- Serve(ctx, host, token, metrics)
+		}
+	}()
 	phone.SetDeadline(time.Now().Add(5 * time.Second))
-	if _, err := phone.Write(append([]byte(Magic), token...)); err != nil {
+	magic := Magic
+	hello := append([]byte(magic), token...)
+	if negotiate {
+		magic = "URV3"
+		hello = append([]byte(magic), token...)
+		hello = binary.BigEndian.AppendUint16(hello, uint16(MTU))
+	}
+	if _, err := phone.Write(hello); err != nil {
 		t.Fatal(err)
 	}
-	var response [4]byte
-	if _, err := io.ReadFull(phone, response[:]); err != nil || string(response[:]) != Magic {
+	response := make([]byte, 4)
+	if negotiate {
+		response = make([]byte, 6)
+	}
+	if _, err := io.ReadFull(phone, response); err != nil || string(response[:4]) != magic {
 		t.Fatalf("handshake: %v", err)
+	}
+	if negotiate && int(binary.BigEndian.Uint16(response[4:])) != MTU {
+		t.Fatal("negotiated packet limit differs")
 	}
 	phone.SetDeadline(time.Time{})
 	// Regression: an Android IPv6 control packet must not close the IPv4 tunnel.
@@ -108,12 +127,17 @@ func testClient(t *testing.T) (*stack.Stack, *Metrics) {
 }
 
 func TestTCPInternetRelay(t *testing.T) {
+	for _, negotiated := range []bool{false, true} {
+		t.Run(strconv.FormatBool(negotiated), func(t *testing.T) { testTCPInternetRelay(t, negotiated) })
+	}
+}
+func testTCPInternetRelay(t *testing.T, negotiated bool) {
 	expected := "synthetic response through raw IP tunnel"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, expected) }))
 	defer server.Close()
 	_, portText, _ := net.SplitHostPort(server.Listener.Addr().String())
 	port, _ := strconv.Atoi(portText)
-	s, metrics := testClient(t)
+	s, metrics := testClientVersion(t, negotiated)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := gonet.DialContextTCP(ctx, s, tcpip.FullAddress{NIC: 1, Addr: tcpip.AddrFrom4([4]byte{10, 0, 2, 2}), Port: uint16(port)}, ipv4.ProtocolNumber)
@@ -141,13 +165,18 @@ func TestTCPInternetRelay(t *testing.T) {
 }
 
 func TestUDPEchoThroughRelay(t *testing.T) {
+	for _, negotiated := range []bool{false, true} {
+		t.Run(strconv.FormatBool(negotiated), func(t *testing.T) { testUDPEchoThroughRelay(t, negotiated) })
+	}
+}
+func testUDPEchoThroughRelay(t *testing.T, negotiated bool) {
 	server, err := net.ListenPacket("udp4", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer server.Close()
 	go func() {
-		data := make([]byte, 2048)
+		data := make([]byte, 65535)
 		for {
 			n, addr, err := server.ReadFrom(data)
 			if err != nil {
@@ -157,18 +186,18 @@ func TestUDPEchoThroughRelay(t *testing.T) {
 		}
 	}()
 	port := server.LocalAddr().(*net.UDPAddr).Port
-	s, _ := testClient(t)
+	s, _ := testClientVersion(t, negotiated)
 	conn, err := gonet.DialUDP(s, nil, &tcpip.FullAddress{NIC: 1, Addr: tcpip.AddrFrom4([4]byte{10, 0, 2, 2}), Port: uint16(port)}, ipv4.ProtocolNumber)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
-	for _, data := range [][]byte{[]byte("synthetic UDP"), bytes.Repeat([]byte{7}, 1200)} {
+	for _, data := range [][]byte{[]byte("synthetic UDP"), bytes.Repeat([]byte{7}, 1200), bytes.Repeat([]byte{8}, 8000), bytes.Repeat([]byte{9}, 16000), bytes.Repeat([]byte{10}, 65507)} {
 		if _, err := conn.Write(data); err != nil {
 			t.Fatal(err)
 		}
-		got := make([]byte, 2048)
+		got := make([]byte, 65535)
 		n, err := conn.Read(got)
 		if err != nil || !bytes.Equal(got[:n], data) {
 			t.Fatalf("datagram changed: n=%d err=%v", n, err)
@@ -233,5 +262,88 @@ func TestPacketFramingHandlesShortWrites(t *testing.T) {
 	result, err := ReadPacket(bytes.NewReader(writer.Bytes()))
 	if err != nil || !bytes.Equal(packet, result) {
 		t.Fatalf("framing changed: %v", err)
+	}
+}
+
+// Exercise the authenticated wire negotiation, including the old v2 client.
+func TestNegotiatedPacketLimit(t *testing.T) {
+	for _, tc := range []struct {
+		name, magic   string
+		request, want int
+	}{
+		{"legacy-v2", "URV2", 0, 1500},
+		{"v3-small", "URV3", 1500, 1500},
+		{"v3-large", "URV3", 9000, 9000},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			host, phone := net.Pipe()
+			defer phone.Close()
+			phone.SetDeadline(time.Now().Add(3 * time.Second))
+			nonce := bytes.Repeat([]byte{9}, 32)
+			metrics := &Metrics{}
+			ended := make(chan error, 1)
+			go func() {
+				ended <- ServeWithPolicy(context.Background(), host, nonce, metrics, Policy{LegacyLab: true}, func() error { return nil })
+			}()
+			hello := append([]byte(tc.magic), nonce...)
+			if tc.request != 0 {
+				hello = binary.BigEndian.AppendUint16(hello, uint16(tc.request))
+			}
+			if _, err := phone.Write(hello); err != nil {
+				t.Fatal(err)
+			}
+			reply := make([]byte, 4)
+			if tc.request != 0 {
+				reply = make([]byte, 6)
+			}
+			if _, err := io.ReadFull(phone, reply); err != nil {
+				t.Fatal(err)
+			}
+			if string(reply[:4]) != tc.magic {
+				t.Fatalf("wrong reply %q", reply[:4])
+			}
+			if tc.request != 0 && int(binary.BigEndian.Uint16(reply[4:])) != tc.want {
+				t.Fatal("MTU agreement differs")
+			}
+			// A valid large IPv6 frame is counted/discarded; it must not kill IPv4 service.
+			packet := make([]byte, tc.want)
+			packet[0] = 0x60
+			binary.BigEndian.PutUint16(packet[4:6], uint16(len(packet)-40))
+			var wire bytes.Buffer
+			binary.Write(&wire, binary.BigEndian, uint16(len(packet)))
+			wire.Write(packet)
+			if _, err := phone.Write(wire.Bytes()); err != nil {
+				t.Fatal(err)
+			}
+			// The session limit must be enforced before reading an oversized payload.
+			var oversized [2]byte
+			binary.BigEndian.PutUint16(oversized[:], uint16(tc.want+1))
+			phone.Write(oversized[:])
+			if err := <-ended; err == nil {
+				t.Fatal("oversized frame accepted")
+			}
+			if metrics.UnsupportedIPv6.Load() != 1 {
+				t.Fatal("valid frame did not traverse negotiated decoder")
+			}
+		})
+	}
+}
+
+func TestInvalidNegotiatedMTU(t *testing.T) {
+	for _, mtu := range []uint16{0, 1499, 9001, 65535} {
+		host, phone := net.Pipe()
+		phone.SetDeadline(time.Now().Add(time.Second))
+		nonce := bytes.Repeat([]byte{9}, 32)
+		done := make(chan error, 1)
+		go func() {
+			done <- ServeWithPolicy(context.Background(), host, nonce, &Metrics{}, Policy{}, func() error { return nil })
+		}()
+		hello := append([]byte("URV3"), nonce...)
+		hello = binary.BigEndian.AppendUint16(hello, mtu)
+		phone.Write(hello)
+		if err := <-done; err == nil {
+			t.Errorf("accepted MTU %d", mtu)
+		}
+		phone.Close()
 	}
 }

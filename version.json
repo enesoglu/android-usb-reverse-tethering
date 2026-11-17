@@ -1,7 +1,7 @@
 {
-  "version": "0.3.0-alpha.1",
-  "assemblyVersion": "0.3.0",
-  "androidVersionCode": 3,
+  "version": "0.4.0-alpha.1",
+  "assemblyVersion": "0.4.0",
+  "androidVersionCode": 4,
   "repository": "https://github.com/enesoglu/android-usb-reverse-tethering",
   "dotnetRuntime": "10.0.15",
   "androidPackage": "io.github.enesoglu.usbrelay"

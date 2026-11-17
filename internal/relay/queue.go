@@ -28,14 +28,17 @@ type fairQueue struct {
 	flows   map[flowKey]*flow
 	order   *list.List
 	count   int
+	bytes   int
 	closed  bool
 	wake    chan struct{}
+	space   chan struct{}
+	done    chan struct{}
 	now     func() time.Time
 	metrics *Metrics
 }
 
 func newFairQueue(metrics *Metrics) *fairQueue {
-	return &fairQueue{flows: map[flowKey]*flow{}, order: list.New(), wake: make(chan struct{}, 1), now: time.Now, metrics: metrics}
+	return &fairQueue{flows: map[flowKey]*flow{}, order: list.New(), wake: make(chan struct{}, 1), space: make(chan struct{}, 1), done: make(chan struct{}), now: time.Now, metrics: metrics}
 }
 func keyFor(packet *stack.PacketBuffer) (flowKey, bool) {
 	var key flowKey
@@ -50,7 +53,9 @@ func keyFor(packet *stack.PacketBuffer) (flowKey, bool) {
 	}
 	return key, key[12] == 17
 }
-func (q *fairQueue) push(packet *stack.PacketBuffer) bool {
+func (q *fairQueue) push(packet *stack.PacketBuffer) bool { return q.tryPush(packet, true) }
+
+func (q *fairQueue) tryPush(packet *stack.PacketBuffer, drop bool) bool {
 	key, isUDP := keyFor(packet)
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -59,10 +64,16 @@ func (q *fairQueue) push(packet *stack.PacketBuffer) bool {
 	if isUDP {
 		limit = 64
 	}
-	if q.closed || q.count >= 1024 || (f != nil && len(f.packets)-f.head >= limit) {
-		q.metrics.QueueRejections.Add(1)
-		if isUDP {
-			q.metrics.UDPQueueDrops.Add(1)
+	byteLimit := 8 * 1024 * 1024
+	if !isUDP {
+		byteLimit -= 64 * 1024
+	}
+	if q.closed || q.bytes+packet.Size() > byteLimit || q.count >= 1024 || (f != nil && len(f.packets)-f.head >= limit) {
+		if drop {
+			q.metrics.QueueRejections.Add(1)
+			if isUDP {
+				q.metrics.UDPQueueDrops.Add(1)
+			}
 		}
 		return false
 	}
@@ -73,6 +84,7 @@ func (q *fairQueue) push(packet *stack.PacketBuffer) bool {
 	}
 	f.packets = append(f.packets, queuedPacket{packet: packet.Clone(), at: q.now(), udp: isUDP})
 	q.count++
+	q.bytes += packet.Size()
 	q.metrics.QueuedPackets.Store(int64(q.count))
 	select {
 	case q.wake <- struct{}{}:
@@ -80,6 +92,32 @@ func (q *fairQueue) push(packet *stack.PacketBuffer) bool {
 	}
 	return true
 }
+
+// pushReliable applies bounded backpressure to TCP instead of manufacturing loss.
+// The transport reader runs independently; cancellation always wakes blocked stack writers.
+func (q *fairQueue) pushReliable(ctx context.Context, packet *stack.PacketBuffer) bool {
+	waited := false
+	for {
+		if ctx.Err() != nil {
+			return false
+		}
+		if q.tryPush(packet, false) {
+			return true
+		}
+		if !waited {
+			q.metrics.TCPQueueWaits.Add(1)
+			waited = true
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-q.done:
+			return false
+		case <-q.space:
+		}
+	}
+}
+
 func (q *fairQueue) tryRead() *stack.PacketBuffer {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -89,6 +127,11 @@ func (q *fairQueue) tryRead() *stack.PacketBuffer {
 		f.packets[f.head] = queuedPacket{}
 		f.head++
 		q.count--
+		q.bytes -= item.packet.Size()
+		select {
+		case q.space <- struct{}{}:
+		default:
+		}
 		q.metrics.QueuedPackets.Store(int64(q.count))
 		if f.head == len(f.packets) {
 			q.order.Remove(f.node)
@@ -135,6 +178,7 @@ func (q *fairQueue) close() {
 		return
 	}
 	q.closed = true
+	close(q.done)
 	for _, f := range q.flows {
 		for _, item := range f.packets[f.head:] {
 			item.packet.DecRef()
@@ -143,6 +187,7 @@ func (q *fairQueue) close() {
 	q.flows = map[flowKey]*flow{}
 	q.order.Init()
 	q.count = 0
+	q.bytes = 0
 	q.metrics.QueuedPackets.Store(0)
 	select {
 	case q.wake <- struct{}{}:
@@ -152,8 +197,13 @@ func (q *fairQueue) close() {
 func (e *endpoint) WritePackets(packets stack.PacketBufferList) (int, tcpip.Error) {
 	n := 0
 	for _, p := range packets.AsSlice() {
-		if !e.queue.push(p) {
-			break
+		_, isUDP := keyFor(p)
+		if isUDP {
+			if !e.queue.push(p) {
+				break
+			}
+		} else if !e.queue.pushReliable(e.ctx, p) {
+			return n, &tcpip.ErrClosedForSend{}
 		}
 		n++
 	}

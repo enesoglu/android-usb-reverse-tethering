@@ -75,6 +75,8 @@ public final class UsbVpnService extends VpnService {
 
     private void runSession(Session session, int startId) {
         try {
+            // Keep latency-sensitive VPN work ahead of ordinary background work.
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY);
             Socket socket = new Socket();
             session.socket = socket;
             if (session.closed) return;
@@ -91,13 +93,18 @@ public final class UsbVpnService extends VpnService {
             session.networkOutput=networkOutput;
             DataInputStream networkInput = new DataInputStream(new BufferedInputStream(socket.getInputStream(), 65536));
             session.phase = "handshake";
-            networkOutput.writeInt(0x55525632);
+            boolean negotiate=session.config.mtu>1500;
+            int protocol=negotiate?0x55525633:0x55525632;
+            networkOutput.writeInt(protocol);
             for (int offset=0; offset<64; offset+=2) networkOutput.writeByte(Integer.parseInt(session.config.nonce.substring(offset, offset+2), 16));
+            if(negotiate)networkOutput.writeShort(session.config.mtu);
             networkOutput.flush();
-            if (networkInput.readInt() != 0x55525632) throw new IOException("relay rejected tunnel");
+            if (networkInput.readInt() != protocol) throw new IOException("relay rejected tunnel");
+            session.mtu=negotiate?networkInput.readUnsignedShort():1500;
+            if(session.mtu<1500||session.mtu>session.config.mtu)throw new IOException("invalid negotiated MTU");
             socket.setSoTimeout(0);
             session.phase = "establish";
-            ParcelFileDescriptor tun = new Builder().setSession("USB Reverse Tether").setMtu(1500)
+            ParcelFileDescriptor tun = new Builder().setSession("USB Reverse Tether").setMtu(session.mtu)
                 .addAddress("10.100.0.2", 32).addRoute("0.0.0.0", 0).addDnsServer(session.config.dns)
                 .setBlocking(false).establish();
             if (tun == null) throw new IOException("VPN permission unavailable");
@@ -110,7 +117,7 @@ public final class UsbVpnService extends VpnService {
             upload.start();
             session.phase = "transfer";
             getSharedPreferences("status", MODE_PRIVATE).edit().putString("state", "connected").putString("phase", "transfer").apply();
-            byte[] packet = new byte[1500];
+            byte[] packet = new byte[session.mtu];
             while (!session.closed) {
                 int size = networkInput.readUnsignedShort();
                 if (size < 20 || size > packet.length) throw new IOException("invalid relay frame size");
@@ -138,7 +145,8 @@ public final class UsbVpnService extends VpnService {
 
     private void upload(Session session, DataOutputStream output) {
         try {
-            byte[] packet = new byte[1500];
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_DISPLAY);
+            byte[] packet = new byte[session.mtu];
             StructPollfd poll = new StructPollfd();
             poll.fd = session.input.getFD();
             poll.events = (short) OsConstants.POLLIN;
@@ -146,11 +154,16 @@ public final class UsbVpnService extends VpnService {
             while (!session.closed) {
                 if (Os.poll(polls, 1000) <= 0) continue;
                 if ((poll.revents & OsConstants.POLLIN) == 0) continue;
-                int size = session.input.read(packet);
-                if (size < 0) break;
-                if (size == 0) continue;
-                synchronized(session.writeLock){output.writeShort(size);output.write(packet,0,size);output.flush();}
-                session.up.incrementAndGet();
+                // Drain only packets already ready; batching adds no waiting timer.
+                synchronized (session.writeLock) {
+                    for (int batch=0; batch<32; batch++) {
+                        int size=session.input.read(packet);
+                        if(size<0)return;
+                        if(size>0){output.writeShort(size);output.write(packet,0,size);session.up.incrementAndGet();}
+                        if(Os.poll(polls,0)<=0 || (poll.revents & OsConstants.POLLIN)==0)break;
+                    }
+                    output.flush();
+                }
             }
         } catch (Exception error) {
             if (!session.closed) getSharedPreferences("status", MODE_PRIVATE).edit().putString("last_error", error.getClass().getSimpleName()).putString("phase", session.phase).putString("state", "failed").apply();
@@ -174,6 +187,7 @@ public final class UsbVpnService extends VpnService {
         volatile DataOutputStream networkOutput;
         volatile boolean closed;
         volatile String phase = "starting";
+        volatile int mtu=1500;
         volatile Socket socket;
         volatile ParcelFileDescriptor tun;
         volatile FileInputStream input;

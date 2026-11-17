@@ -1,17 +1,22 @@
-# USB Relay 0.3.0-alpha.1
+# USB Relay 0.4.0-alpha.1
 
-Share a Windows PC's internet with an Android phone over USB: rootless reverse tethering with a native tray application, trusted-device reconnect and an English setup guide.
+This alpha improves the USB data path, startup behavior and developer documentation.
 
-## Choose a download
+## What's changed
 
-- **Windows x64 Setup.exe**: recommended per-user installer.
-- **Windows x64 Portable.zip**: extract the whole archive and run UsbRelay.exe.
-- **Android.apk**: optional; normal Windows setup installs the bundled phone companion automatically.
-- **Source.zip**: corresponding project/dependency source and build instructions.
-- **SHA256SUMS.txt**: verify downloaded files.
+- More efficient packet sizing and batching, while retaining compatibility with older framing.
+- Bounded TCP backpressure and reserved queue headroom for UDP.
+- Improved Android VPN worker scheduling.
+- Optional startup directly in the system tray.
+- A public engineering guide covering USB negotiation, Android VPN/TUN, ADB, accessory transport and flow control.
+- Simplified public documentation and generic interface examples without device/session records.
 
-Start with [the installation guide](https://github.com/enesoglu/android-usb-reverse-tethering/blob/main/docs/INSTALLATION.md). Both Windows packages include .NET; Google platform tools are obtained separately through consent-gated setup or an existing adb.exe.
+## Downloads
 
-This is an **alpha**. Windows binaries are not Authenticode-signed. Throughput is unfinished: the measured default was about 128 Mbps on a receiver-hashed 512 MiB VPN transfer, versus 268–273 Mbps for raw ADB. Loaded UDP p95 was about 20 ms and all 531 probes arrived in that default test. These are local synthetic measurements, not a gigabit or public-internet-speed guarantee.
+Choose **Windows x64 Setup.exe** for installation or **Portable.zip** for a self-contained folder. Windows installs the bundled Android companion automatically; the separate APK is available for manual use. Source, checksums and build metadata are included with this release.
 
-GPL-3.0-only, no warranty. The matching source is available from this release/tag. Do not share private signing or pairing files in bug reports.
+[Installation guide](https://github.com/enesoglu/android-usb-reverse-tethering/blob/main/docs/INSTALLATION.md) · [Engineering guide](https://github.com/enesoglu/android-usb-reverse-tethering/blob/main/docs/reverse-tethering-engineering.md)
+
+Throughput varies by USB link, device scheduling and network conditions; there is no fixed minimum or gigabit guarantee. Download consistency and loaded latency remain work in progress. General IPv6 and ICMP forwarding are not implemented. Android permits one VPN per profile, and Windows binaries are not Authenticode-signed.
+
+GPL-3.0-only, no warranty. Existing Android installations retain the release signing identity and can update normally. Never include private signing/pairing state or device identifiers in public reports.

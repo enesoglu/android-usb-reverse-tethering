@@ -175,7 +175,7 @@ public partial class MainWindow : Window
         if (current.HostPin != "")
             Clipboard.SetText(current.HostPin);
     }
-    private void CopyDiagnostics(object sender, RoutedEventArgs e) => Clipboard.SetText($"USB Relay 0.3.0-alpha.1\nState: {current.State}\nEncryption: TLS 1.3 mutual authentication\nActive flows: {current.ActiveFlows}\nQueue rejections: {current.QueueRejections}\nPhones connected: {current.Devices.Count}\nTraffic and device identifiers omitted.");
+    private void CopyDiagnostics(object sender, RoutedEventArgs e) => Clipboard.SetText($"USB Relay 0.4.0-alpha.1\nState: {current.State}\nEncryption: TLS 1.3 mutual authentication\nActive flows: {current.ActiveFlows}\nQueue rejections: {current.QueueRejections}\nPhones connected: {current.Devices.Count}\nTraffic and device identifiers omitted.");
     private void Help(object sender, RoutedEventArgs e) => new SetupWindow { Owner = this }.ShowDialog();
     private void OpenLicense(object sender, RoutedEventArgs e) => SetupWindow.Open(Path.Combine(AppContext.BaseDirectory, "LICENSE.txt"));
     private void OpenSource(object sender, RoutedEventArgs e) => SetupWindow.Open("https://github.com/enesoglu/android-usb-reverse-tethering");

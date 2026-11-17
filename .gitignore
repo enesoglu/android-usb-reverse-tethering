@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
-results/*.json
+results/
 build/
 .local/
 

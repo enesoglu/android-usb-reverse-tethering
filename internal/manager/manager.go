@@ -57,6 +57,7 @@ type Device struct {
 	Pin     string `json:"pin,omitempty"`
 }
 type Snapshot struct {
+	TCPQueueWaits    uint64    `json:"tcpQueueWaits"`
 	TransportPackets uint64    `json:"transportPackets"`
 	TransportFlushes uint64    `json:"transportFlushes"`
 	State            string    `json:"state"`
@@ -285,7 +286,7 @@ func (m *Manager) runSession(ctx context.Context, s *session, expected string, r
 	if _, err = rand.Read(nonce); err != nil {
 		return errors.New("could not generate a secure session")
 	}
-	provision := adb.Provision{Port: listener.Addr().(*net.TCPAddr).Port, Pin: m.host.Pin, Nonce: hex.EncodeToString(nonce), DNS: settings.DNS, Background: automatic, AttachID: m.bootID + ":" + s.device.Transport}
+	provision := adb.Provision{MTU: relay.MTU, Port: listener.Addr().(*net.TCPAddr).Port, Pin: m.host.Pin, Nonce: hex.EncodeToString(nonce), DNS: settings.DNS, Background: automatic, AttachID: m.bootID + ":" + s.device.Transport}
 	cleanup, err := m.backend.Prepare(ctx, s.device, provision, automatic)
 	if err != nil {
 		return err
@@ -412,6 +413,7 @@ func (m *Manager) Snapshot() Snapshot {
 		out.Serial = s.device.Serial
 		out.DownloadBytes = s.metrics.OutBytes.Load()
 		out.UploadBytes = s.metrics.InBytes.Load()
+		out.TCPQueueWaits = s.metrics.TCPQueueWaits.Load()
 		out.TransportPackets = s.metrics.OutPackets.Load()
 		out.TransportFlushes = s.metrics.TransportFlushes.Load()
 		out.QueueRejections = s.metrics.QueueRejections.Load()

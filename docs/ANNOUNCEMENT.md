@@ -12,7 +12,7 @@ I am the developer of USB Relay, a GPLv3 app for Windows-to-Android USB reverse 
 
 It has a native Windows interface, tray controls, optional startup, explicit phone pairing, and automatic reconnect for trusted phones. Android root is not required; USB debugging and the first VPN approval are required.
 
-This is an early public alpha, tested on a Galaxy S23 Ultra / Android 17. The documented encrypted VPN download reached about 128 Mbps; gigabit performance and broad compatibility are not claimed. IPv4 TCP/UDP is supported; general IPv6 and ICMP forwarding are not. Windows binaries are currently unsigned.
+This is a public alpha with a more efficient USB data path and an open engineering guide. Throughput and compatibility depend on the device and network; a fixed speed is not guaranteed. IPv4 TCP/UDP is supported; general IPv6 and ICMP forwarding are not. Windows binaries are currently unsigned.
 
 I would appreciate reproducible installation reports and feedback from other devices. Please remove device serials and private data from reports.
 

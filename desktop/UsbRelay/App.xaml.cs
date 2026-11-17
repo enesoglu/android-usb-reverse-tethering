@@ -206,7 +206,7 @@ public partial class App : System.Windows.Application
             PresentStartup(new Settings(), false);
             result["normal_start_shows_window"] = view.IsVisible;
             for (int i = 0; i < 30; i++)
-                view.Apply(new Snapshot { State = "connected", Message = "Your phone is using this computer's Internet", Serial = "synthetic-device", HostPin = new string('a', 64), Devices = new() { new Device { Serial = "synthetic-device", Model = "Galaxy S23 Ultra", State = "device", Trusted = true } }, DownloadMbps = 120 + Math.Sin(i * .35) * 60, UploadMbps = 8 + Math.Cos(i * .4) * 3, DownloadBytes = 536870912, UploadBytes = 16777216, UptimeSeconds = 125, ActiveFlows = 12 });
+                view.Apply(new Snapshot { State = "connected", Message = "Your phone is using this computer's Internet", Serial = "synthetic-device", HostPin = new string('a', 64), Devices = new() { new Device { Serial = "synthetic-device", Model = "Demo Android phone", State = "device", Trusted = true } }, DownloadMbps = 120 + Math.Sin(i * .35) * 60, UploadMbps = 8 + Math.Cos(i * .4) * 3, DownloadBytes = 536870912, UploadBytes = 16777216, UptimeSeconds = 125, ActiveFlows = 12 });
             await Task.Delay(300);
             view.RenderPreview(output);
             view.WindowState = WindowState.Minimized;

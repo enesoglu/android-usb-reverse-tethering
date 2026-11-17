@@ -4,7 +4,7 @@ This guide shares the computer's internet with the phone. It does not share the 
 
 ## Before you start
 
-You need a Windows x64 computer with working internet, an Android 10+ phone, and a USB cable that carries data. A cable's charging wattage does not tell you its data speed. Windows 11 and Galaxy S23 Ultra / Android 17 are the tested combination; other devices need validation.
+You need a Windows x64 computer with working internet, an Android 10+ phone, and a USB cable that carries data. A cable's charging wattage does not tell you its data speed. Windows 11 is the primary development platform; Android permissions and background behavior can vary by device manufacturer.
 
 There are three important approvals: installing this Windows app, authorizing your computer for USB debugging on the phone, and approving Android's VPN. The last two are Android security decisions and cannot be automated or bypassed.
 

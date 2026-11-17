@@ -25,7 +25,7 @@ def diagnostic_session(serial,ports,enabled):
     if os.environ.get('USB_RELAY_CPU_PROFILE'):arguments+=['--cpu-profile',str(Path(os.environ['USB_RELAY_CPU_PROFILE']).resolve())]
     process=subprocess.Popen(arguments,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,creationflags=subprocess.CREATE_NO_WINDOW)
     events=queue.Queue()
-    measurements={'queue_rejections':0,'peak_download_mbps':0.0,'max_active_flows':0,'relay_cpu_core_percent':0.0,'relay_download_bytes':0,'relay_upload_bytes':0,'relay_uptime_seconds':0,'transport_packets':0,'transport_flushes':0}
+    measurements={'tcp_queue_waits':0,'queue_rejections':0,'peak_download_mbps':0.0,'max_active_flows':0,'relay_cpu_core_percent':0.0,'relay_download_bytes':0,'relay_upload_bytes':0,'relay_uptime_seconds':0,'transport_packets':0,'transport_flushes':0}
     times=ctypes.WinDLL('kernel32',use_last_error=True).GetProcessTimes
     times.argtypes=[wintypes.HANDLE]+[ctypes.POINTER(wintypes.FILETIME)]*4
     times.restype=wintypes.BOOL
@@ -42,6 +42,7 @@ def diagnostic_session(serial,ports,enabled):
                 event=json.loads(line)
                 if event.get('type')=='snapshot':
                     state=event['state']
+                    measurements['tcp_queue_waits']=max(measurements['tcp_queue_waits'],state.get('tcpQueueWaits',0))
                     measurements['transport_packets']=max(measurements['transport_packets'],state.get('transportPackets',0))
                     measurements['transport_flushes']=max(measurements['transport_flushes'],state.get('transportFlushes',0))
                     measurements['relay_download_bytes']=max(measurements['relay_download_bytes'],state.get('downloadBytes',0))

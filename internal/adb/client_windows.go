@@ -35,6 +35,7 @@ type Device struct {
 
 // Provision contains the pinned transport configuration; its nonce is never put in a process argument.
 type Provision struct {
+	MTU        int    `json:"mtu,omitempty"`
 	AttachID   string `json:"attachId"`
 	Port       int    `json:"port"`
 	Pin        string `json:"pin"`

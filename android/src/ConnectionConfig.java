@@ -5,9 +5,10 @@ import org.json.JSONObject;
 
 /** Configuration may only be enrolled by the shell-protected provisioning activity. */
 final class ConnectionConfig {
- final int port;final String pin,nonce,dns,attachId;final boolean background;
+ final int port,mtu;final String pin,nonce,dns,attachId;final boolean background;
  ConnectionConfig(String json)throws Exception {
-  JSONObject data=new JSONObject(json);port=data.getInt("port");pin=data.getString("pin");nonce=data.getString("nonce");dns=data.getString("dns");attachId=data.getString("attachId");background=data.optBoolean("background",false);
+  JSONObject data=new JSONObject(json);mtu=data.optInt("mtu",1500);port=data.getInt("port");pin=data.getString("pin");nonce=data.getString("nonce");dns=data.getString("dns");attachId=data.getString("attachId");background=data.optBoolean("background",false);
+  if(mtu<1500||mtu>9000)throw new InvalidField("mtu");
   if(port<1024||port>65535)throw new InvalidField("port");
   if(!pin.matches("[0-9a-f]{64}"))throw new InvalidField("pin");
   if(!nonce.matches("[0-9a-f]{64}"))throw new InvalidField("nonce");

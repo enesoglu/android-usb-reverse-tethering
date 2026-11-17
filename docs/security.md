@@ -15,7 +15,7 @@ The PC can observe traffic that is not independently end-to-end encrypted. This 
 | Tunnel endpoint | TLS 1.3, required client identity, exact saved SPKI, ALPN | Real host TLS positive and negative tests |
 | First enrollment | Manual selection, fresh 256-bit nonce, persistence only after authentication | Wrong nonce and failed persistence tests |
 | Persistent trust | User DPAPI integrity, atomic files, no silent identity reset | Roundtrip/tamper/missing-key tests |
-| Android configuration | DUMP-protected component, launcher ignores config extras | Ordinary-UID attack probe passed on S23 / Android 17 |
+| Android configuration | DUMP-protected component, launcher ignores config extras | Ordinary-UID permission probe coverage on Android |
 | Phone identity | P-256 non-exportable Android Keystore key | Actual Go/Android TLS and synthetic non-exportable-key signing passed |
 | Executable discovery | Absolute ADB paths only; rejected current-directory/PATH ErrDot and relative SDK candidates | Search-path hijack regression test |
 | Local management | Parent-owned stdio, no control network listener | Architecture and desktop lifecycle check |
