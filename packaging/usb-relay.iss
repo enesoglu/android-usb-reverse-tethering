@@ -57,12 +57,13 @@ begin
       Result := 'Please exit USB Relay from its tray menu and try again.';
 end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-var Current, Expected: String;
+var Current, Expected, LegacyExpected: String;
 begin
   if CurUninstallStep = usUninstall then begin
-    Expected := '"' + ExpandConstant('{app}\UsbRelay.exe') + '" --background';
+    LegacyExpected := '"' + ExpandConstant('{app}\UsbRelay.exe') + '" --background';
+    Expected := '"' + ExpandConstant('{app}\UsbRelay.exe') + '" --startup';
     if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'UsbReverseTether', Current) then
-      if CompareText(Current, Expected) = 0 then
+      if (CompareText(Current, Expected) = 0) or (CompareText(Current, LegacyExpected) = 0) then
         RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'UsbReverseTether');
   end;
 end;

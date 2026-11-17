@@ -30,7 +30,7 @@ USB Relay is a free, open-source **reverse tethering** app: use your computer's 
 ## Everyday features
 
 - Native Windows desktop app with a live traffic display and paired-device list.
-- Optional **Start with Windows**, minimize-to-tray, and close-to-tray behavior.
+- Optional **Start with Windows**, **Start minimized to the system tray**, minimize-to-tray, and close-to-tray behavior.
 - Automatic reconnect for previously trusted phones, including USB detach/reattach.
 - Explicit first pairing and changed-key protection; a serial number alone does not establish trust.
 - Rootless Android VPN with TLS 1.3 mutual authentication.

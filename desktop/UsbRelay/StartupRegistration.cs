@@ -14,7 +14,7 @@ public static class StartupRegistration
         using RegistryKey key = Registry.CurrentUser.CreateSubKey(RunPath, true);
         if (enabled)
         {
-            string command = $"\"{executable}\" --background";
+            string command = $"\"{executable}\" --startup";
             if (command.Length > 260)
                 throw new IOException("Move the app to a shorter path before enabling startup");
             key.SetValue(valueName, command, RegistryValueKind.String);
@@ -46,6 +46,9 @@ public static class StartupRegistration
         try
         {
             Set(true, Environment.ProcessPath!, name);
+            using var key = Registry.CurrentUser.OpenSubKey(RunPath);
+            if (key?.GetValue(name) as string != $"\"{Environment.ProcessPath}\" --startup")
+                return false;
             if (!IsEnabled(name))
                 return false;
             Set(false, Environment.ProcessPath!, name);

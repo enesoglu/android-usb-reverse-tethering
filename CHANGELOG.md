@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add a separate start-minimized preference that opens directly in the system tray.
+- Honor the saved window preference for Windows sign-in startup.
+
 ## 0.3.0-alpha.1
 
 First public alpha of USB Relay for Windows x64 and Android 10+.

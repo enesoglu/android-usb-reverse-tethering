@@ -76,7 +76,8 @@ The Windows app should now show **Connected**. Open a browser on the phone and t
 
 Open **Preferences** in the Windows app:
 
-- **Start with Windows** starts quietly in the tray after you sign in. It is off until you choose it.
+- **Start with Windows** launches the app after you sign in. It is off until you choose it.
+- **Start minimized to the system tray** starts the app without showing its window, including when Windows launches it. It is off by default; double-click the tray icon to reopen the window.
 - **Automatically connect trusted phones** reconnects a saved, matching phone while the Windows app is running.
 - **Minimize to the system tray** hides the minimized window.
 - **Keep running in the tray when I close the window** keeps sharing after clicking X.

@@ -30,6 +30,7 @@ type Settings struct {
 	ADBPath          string `json:"adbPath"`
 	AutoConnect      bool   `json:"autoConnect"`
 	StartWithWindows bool   `json:"startWithWindows"`
+	StartMinimized   bool   `json:"startMinimized"`
 	MinimizeToTray   bool   `json:"minimizeToTray"`
 	CloseToTray      bool   `json:"closeToTray"`
 	AllowLAN         bool   `json:"allowLAN"`

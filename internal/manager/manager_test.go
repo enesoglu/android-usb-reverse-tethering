@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/enesoglu/android-usb-reverse-tethering/internal/adb"
 	"github.com/enesoglu/android-usb-reverse-tethering/internal/identity"
@@ -163,10 +164,11 @@ func TestFailedSettingsSavePreservesConfiguration(t *testing.T) {
 	m.save = func(Config) error { return errors.New("synthetic write failure") }
 	next := before
 	next.DNS = "9.9.9.9"
+	next.StartMinimized = true
 	if m.SetSettings(next) == nil {
 		t.Fatal("save failure ignored")
 	}
-	if m.Snapshot().Settings.DNS != before.DNS {
+	if m.Snapshot().Settings != before {
 		t.Fatal("failed write changed settings")
 	}
 }
@@ -220,5 +222,36 @@ func TestClosedManagerRejectsNewConnection(t *testing.T) {
 	m.closed = true
 	if m.Connect("synthetic-phone", true) == nil {
 		t.Fatal("shutdown manager accepted new work")
+	}
+}
+
+func TestStartMinimizedPersistsAcrossManagerRestart(t *testing.T) {
+	m, _, _ := fixture(t, false)
+	var saved []byte
+	m.save = func(config Config) (err error) {
+		saved, err = json.Marshal(config)
+		return err
+	}
+	for _, enabled := range []bool{true, false} {
+		next := m.Snapshot().Settings
+		next.StartMinimized = enabled
+		if err := m.SetSettings(next); err != nil {
+			t.Fatal(err)
+		}
+		restored := DefaultConfig()
+		if err := json.Unmarshal(saved, &restored); err != nil {
+			t.Fatal(err)
+		}
+		restarted := New(m.backend, m.host, restored, m.save)
+		if restarted.Snapshot().Settings.StartMinimized != enabled {
+			t.Fatal("startup preference lost after restart")
+		}
+	}
+	legacy := DefaultConfig()
+	if err := json.Unmarshal([]byte(`{"settings":{"startWithWindows":true}}`), &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.Settings.StartMinimized {
+		t.Fatal("legacy config should show the window by default")
 	}
 }

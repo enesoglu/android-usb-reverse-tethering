@@ -8,6 +8,10 @@ public sealed class Settings
     {
         get; set;
     }
+    public bool StartMinimized
+    {
+        get; set;
+    }
     public bool MinimizeToTray { get; set; } = true; public bool CloseToTray { get; set; } = true; public bool AllowLAN
     {
         get; set;

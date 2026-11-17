@@ -69,6 +69,7 @@ public partial class MainWindow : Window
         {
             applying = true;
             StartupCheck.IsChecked = snapshot.Settings.StartWithWindows;
+            StartMinimizedCheck.IsChecked = snapshot.Settings.StartMinimized;
             AutoConnectCheck.IsChecked = snapshot.Settings.AutoConnect;
             MinimizeCheck.IsChecked = snapshot.Settings.MinimizeToTray;
             CloseTrayCheck.IsChecked = snapshot.Settings.CloseToTray;
@@ -152,7 +153,7 @@ public partial class MainWindow : Window
     {
         if (backend == null)
             return;
-        var next = new Settings { StartWithWindows = StartupCheck.IsChecked == true, AutoConnect = AutoConnectCheck.IsChecked == true, MinimizeToTray = MinimizeCheck.IsChecked == true, CloseToTray = CloseTrayCheck.IsChecked == true, AllowLAN = LANCheck.IsChecked == true, DNS = DnsText.Text.Trim(), ADBPath = AdbPathText.Text.Trim() };
+        var next = new Settings { StartWithWindows = StartupCheck.IsChecked == true, StartMinimized = StartMinimizedCheck.IsChecked == true, AutoConnect = AutoConnectCheck.IsChecked == true, MinimizeToTray = MinimizeCheck.IsChecked == true, CloseToTray = CloseTrayCheck.IsChecked == true, AllowLAN = LANCheck.IsChecked == true, DNS = DnsText.Text.Trim(), ADBPath = AdbPathText.Text.Trim() };
         string? previous = StartupRegistration.Capture();
         try
         {

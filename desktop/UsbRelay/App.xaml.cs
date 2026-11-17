@@ -70,15 +70,24 @@ public partial class App : System.Windows.Application
         window = new MainWindow(backend);
         MainWindow = window;
         ConfigureTrayAndWindow();
-        if (!e.Args.Contains("--background"))
-            window.Show();
+        var initialSnapshot = new TaskCompletionSource<Snapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnInitialSnapshot(Snapshot snapshot) => initialSnapshot.TrySetResult(snapshot);
+        backend.Changed += OnInitialSnapshot;
         try
         {
             backend.Start();
-            if (!e.Args.Contains("--background") && !PlatformTools.SetupCompleted)
+            var snapshot = await initialSnapshot.Task.WaitAsync(TimeSpan.FromSeconds(12));
+            PresentStartup(snapshot.Settings, e.Args.Contains("--background"));
+            if (window.IsVisible && !PlatformTools.SetupCompleted)
                 new SetupWindow { Owner = window }.ShowDialog();
         }
         catch (Exception error) { window.ShowWindow(); MessageBox.Show(window, error.Message, "USB Relay could not start", MessageBoxButton.OK, MessageBoxImage.Error); }
+        finally { backend.Changed -= OnInitialSnapshot; }
+    }
+    private void PresentStartup(Settings settings, bool background)
+    {
+        if (!background && !settings.StartMinimized)
+            window?.ShowWindow();
     }
     private void ConfigureTrayAndWindow()
     {
@@ -187,7 +196,15 @@ public partial class App : System.Windows.Application
             trayTip = true;
             ConfigureTrayAndWindow();
             view.Title = "USB Relay · Synthetic UI preview";
-            view.Show();
+            PresentStartup(new Settings { StartMinimized = true, MinimizeToTray = false }, false);
+            result["start_minimized_without_window"] = !view.IsVisible && tray!.Visible;
+            ((Forms.ToolStripMenuItem)tray!.ContextMenuStrip!.Items[0]).PerformClick();
+            result["restore_after_minimized_start"] = view.IsVisible && view.WindowState == WindowState.Normal;
+            view.Hide();
+            PresentStartup(new Settings(), true);
+            result["explicit_background_without_window"] = !view.IsVisible && tray.Visible;
+            PresentStartup(new Settings(), false);
+            result["normal_start_shows_window"] = view.IsVisible;
             for (int i = 0; i < 30; i++)
                 view.Apply(new Snapshot { State = "connected", Message = "Your phone is using this computer's Internet", Serial = "synthetic-device", HostPin = new string('a', 64), Devices = new() { new Device { Serial = "synthetic-device", Model = "Galaxy S23 Ultra", State = "device", Trusted = true } }, DownloadMbps = 120 + Math.Sin(i * .35) * 60, UploadMbps = 8 + Math.Cos(i * .4) * 3, DownloadBytes = 536870912, UploadBytes = 16777216, UptimeSeconds = 125, ActiveFlows = 12 });
             await Task.Delay(300);
